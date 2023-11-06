@@ -1,13 +1,12 @@
 const User = require('../models/User')
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
-const asyncHandler = require('express-async-handler')
-const refreshTokenExp = "25s";
-const accessTokenExp = "15s";
+const accessTokenExp = "10s";
+const refreshTokenExp = "20s";
 // @desc Login
 // @route POST /auth
 // @access Public
-const login = asyncHandler(async (req, res) => {
+const login = async (req, res) => {
   const { username, password } = req.body;
 
   if (!username || !password) {
@@ -32,13 +31,13 @@ const login = asyncHandler(async (req, res) => {
       }
     },
     process.env.ACCESS_TOKEN_SECRET,
-    { expiresIn:accessTokenExp }
+    { expiresIn: accessTokenExp }
   );
 
   const refreshToken = jwt.sign(
     { username: foundUser.username },
     process.env.REFRESH_TOKEN_SECRET,
-    { expiresIn:refreshTokenExp}
+    { expiresIn: refreshTokenExp }
   );
 
   // Create secure cookie with refresh token
@@ -47,12 +46,12 @@ const login = asyncHandler(async (req, res) => {
     secure: true, //https
     sameSite: "None", //cross-site cookie
     // maxAge: 7 * 24 * 60 * 60 * 1000 //cookie expiry: set to match rT
-    maxAge: 25 * 1000 //cookie expiry: set to match rT
+    maxAge: parseInt(refreshTokenExp) * 1000 //cookie expiry: set to match rT
   });
 
   // Send accessToken containing username and roles
   res.json({ accessToken });
-});
+};
 
 // @desc Refresh
 // @route GET /auth/refresh
@@ -67,7 +66,7 @@ const refresh = (req, res) => {
   jwt.verify(
     refreshToken,
     process.env.REFRESH_TOKEN_SECRET,
-    asyncHandler(async (err, decoded) => {
+    async (err, decoded) => {
       if (err) return res.status(403).json({ message: "Forbidden" });
 
       const foundUser = await User.findOne({
@@ -88,7 +87,7 @@ const refresh = (req, res) => {
       );
 
       res.json({ accessToken });
-    })
+    }
   );
 };
 
